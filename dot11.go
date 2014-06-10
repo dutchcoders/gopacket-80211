@@ -3,6 +3,7 @@ package main
 import (
 	_ "bytes"
 	"encoding/binary"
+        "fmt"
 	"net"
         "hash/crc32"
 	"code.google.com/p/gopacket"
@@ -165,13 +166,36 @@ func (m *Dot11) NextLayerType() gopacket.LayerType {
             }
             case CONTROL_FRAME: {
                 switch (m.Subtype) {
+                    case CTRL_BLOCK_ACK_REQ: {
+                        return LayerTypeDot11ControlBlockAckReq
+                    }
+                    case CTRL_BLOCK_ACK: {
+                        return LayerTypeDot11ControlBlockAck
+                    }
+                    case CTRL_RTS: {
+                        return LayerTypeDot11ControlRequestToSend
+                    }
                     case CTRL_CTS: {
                         return LayerTypeDot11ControlClearToSend
                     }
+                    case CTRL_PS_POLL: {
+                        return LayerTypeDot11ControlPowersavePoll
+                    }
+                    case CTRL_ACKNOWLEDGEMENT: {
+                        return LayerTypeDot11ControlAcknowledgement
+                    }
+                    case CTRL_CFP_END: {
+                        return LayerTypeDot11ControlContentionFreePeriodEnd
+                    }
+                    case CTRL_CFP_ENDACK: {
+                        return LayerTypeDot11ControlContentionFreePeriodEndAck
+                    }
                 }
-                return LayerTypeDot11ControlFrame
+                return gopacket.LayerTypePayload
             }
             case DATA_FRAME: {
+                switch (m.Subtype) {
+                }
                 return LayerTypeDot11DataFrame
             }
         }
@@ -367,6 +391,126 @@ func (m *Dot11ControlClearToSend) DecodeFromBytes(data []byte, df gopacket.Decod
     return nil
 }
 
+var LayerTypeDot11ControlRequestToSend = gopacket.RegisterLayerType(104002, gopacket.LayerTypeMetadata{"LayerTypeDot11ControlRequestToSend", gopacket.DecodeFunc(decodeDot11ControlRequestToSend)})
+
+type Dot11ControlRequestToSend struct {
+	Dot11ControlFrame
+}
+
+func decodeDot11ControlRequestToSend(data []byte, p gopacket.PacketBuilder) error {
+	d := &Dot11ControlRequestToSend{}
+	return decodingLayerDecoder(d, data, p)
+}
+
+func (m *Dot11ControlRequestToSend) LayerType() gopacket.LayerType { return LayerTypeDot11ControlRequestToSend }
+func (m *Dot11ControlRequestToSend) CanDecode() gopacket.LayerClass { return LayerTypeDot11ControlRequestToSend }
+func (m *Dot11ControlRequestToSend) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) error {
+    return nil
+}
+
+var LayerTypeDot11ControlBlockAckReq = gopacket.RegisterLayerType(104003, gopacket.LayerTypeMetadata{"LayerTypeDot11ControlBlockAckReq", gopacket.DecodeFunc(decodeDot11ControlBlockAckReq)})
+
+type Dot11ControlBlockAckReq struct {
+	Dot11ControlFrame
+}
+
+func decodeDot11ControlBlockAckReq(data []byte, p gopacket.PacketBuilder) error {
+	d := &Dot11ControlBlockAckReq{}
+	return decodingLayerDecoder(d, data, p)
+}
+
+func (m *Dot11ControlBlockAckReq) LayerType() gopacket.LayerType { return LayerTypeDot11ControlBlockAckReq }
+func (m *Dot11ControlBlockAckReq) CanDecode() gopacket.LayerClass { return LayerTypeDot11ControlBlockAckReq }
+func (m *Dot11ControlBlockAckReq) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) error {
+    return nil
+}
+
+var LayerTypeDot11ControlBlockAck = gopacket.RegisterLayerType(104004, gopacket.LayerTypeMetadata{"LayerTypeDot11ControlBlockAck", gopacket.DecodeFunc(decodeDot11ControlBlockAck)})
+
+type Dot11ControlBlockAck struct {
+	Dot11ControlFrame
+}
+
+func decodeDot11ControlBlockAck(data []byte, p gopacket.PacketBuilder) error {
+	d := &Dot11ControlBlockAck{}
+	return decodingLayerDecoder(d, data, p)
+}
+
+func (m *Dot11ControlBlockAck) LayerType() gopacket.LayerType { return LayerTypeDot11ControlBlockAck }
+func (m *Dot11ControlBlockAck) CanDecode() gopacket.LayerClass { return LayerTypeDot11ControlBlockAck }
+func (m *Dot11ControlBlockAck) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) error {
+    return nil
+}
+
+var LayerTypeDot11ControlPowersavePoll = gopacket.RegisterLayerType(104005, gopacket.LayerTypeMetadata{"LayerTypeDot11ControlPowersavePoll", gopacket.DecodeFunc(decodeDot11ControlPowersavePoll)})
+
+type Dot11ControlPowersavePoll struct {
+	Dot11ControlFrame
+}
+
+func decodeDot11ControlPowersavePoll(data []byte, p gopacket.PacketBuilder) error {
+	d := &Dot11ControlPowersavePoll{}
+	return decodingLayerDecoder(d, data, p)
+}
+
+func (m *Dot11ControlPowersavePoll) LayerType() gopacket.LayerType { return LayerTypeDot11ControlPowersavePoll }
+func (m *Dot11ControlPowersavePoll) CanDecode() gopacket.LayerClass { return LayerTypeDot11ControlPowersavePoll }
+func (m *Dot11ControlPowersavePoll) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) error {
+    return nil
+}
+
+var LayerTypeDot11ControlAcknowledgement = gopacket.RegisterLayerType(104006, gopacket.LayerTypeMetadata{"LayerTypeDot11ControlAcknowledgement", gopacket.DecodeFunc(decodeDot11ControlAcknowledgement)})
+
+type Dot11ControlAcknowledgement struct {
+	Dot11ControlFrame
+}
+
+func decodeDot11ControlAcknowledgement(data []byte, p gopacket.PacketBuilder) error {
+	d := &Dot11ControlAcknowledgement{}
+	return decodingLayerDecoder(d, data, p)
+}
+
+func (m *Dot11ControlAcknowledgement) LayerType() gopacket.LayerType { return LayerTypeDot11ControlAcknowledgement }
+func (m *Dot11ControlAcknowledgement) CanDecode() gopacket.LayerClass { return LayerTypeDot11ControlAcknowledgement }
+func (m *Dot11ControlAcknowledgement) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) error {
+    return nil
+}
+
+var LayerTypeDot11ControlContentionFreePeriodEnd = gopacket.RegisterLayerType(104007, gopacket.LayerTypeMetadata{"LayerTypeDot11ControlContentionFreePeriodEnd", gopacket.DecodeFunc(decodeDot11ControlContentionFreePeriodEnd)})
+
+type Dot11ControlContentionFreePeriodEnd struct {
+	Dot11ControlFrame
+}
+
+func decodeDot11ControlContentionFreePeriodEnd(data []byte, p gopacket.PacketBuilder) error {
+	d := &Dot11ControlContentionFreePeriodEnd{}
+	return decodingLayerDecoder(d, data, p)
+}
+
+func (m *Dot11ControlContentionFreePeriodEnd) LayerType() gopacket.LayerType { return LayerTypeDot11ControlContentionFreePeriodEnd }
+func (m *Dot11ControlContentionFreePeriodEnd) CanDecode() gopacket.LayerClass { return LayerTypeDot11ControlContentionFreePeriodEnd }
+func (m *Dot11ControlContentionFreePeriodEnd) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) error {
+    return nil
+}
+
+var LayerTypeDot11ControlContentionFreePeriodEndAck = gopacket.RegisterLayerType(104008, gopacket.LayerTypeMetadata{"LayerTypeDot11ControlContentionFreePeriodEndAck", gopacket.DecodeFunc(decodeDot11ControlContentionFreePeriodEndAck)})
+
+type Dot11ControlContentionFreePeriodEndAck struct {
+	Dot11ControlFrame
+}
+
+func decodeDot11ControlContentionFreePeriodEndAck(data []byte, p gopacket.PacketBuilder) error {
+	d := &Dot11ControlContentionFreePeriodEndAck{}
+	return decodingLayerDecoder(d, data, p)
+}
+
+func (m *Dot11ControlContentionFreePeriodEndAck) LayerType() gopacket.LayerType { return LayerTypeDot11ControlContentionFreePeriodEndAck }
+func (m *Dot11ControlContentionFreePeriodEndAck) CanDecode() gopacket.LayerClass { return LayerTypeDot11ControlContentionFreePeriodEndAck }
+func (m *Dot11ControlContentionFreePeriodEndAck) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) error {
+    return nil
+}
+
+
 
 var LayerTypeDot11AssocReq = gopacket.RegisterLayerType(1059989, gopacket.LayerTypeMetadata{"LayerTypeDot11AssocReq", gopacket.DecodeFunc(decodeDot11AssocReq)})
 
@@ -529,6 +673,10 @@ func (m *Dot11Beacon) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) e
     m.Flags=binary.LittleEndian.Uint16(data[10:12])
     m.BaseLayer = layers.BaseLayer{Contents: data, Payload: data[12:]}
     return nil
+}
+
+func (d *Dot11Beacon) String() string {
+    return fmt.Sprintf("Beacon timestamp=%v interval=%v flags=%v", d.Timestamp, d.Interval, d.Flags)
 }
 
 func (m *Dot11Beacon) NextLayerType() gopacket.LayerType { return LayerTypeDot11InformationElement }
