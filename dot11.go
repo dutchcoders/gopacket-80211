@@ -884,6 +884,7 @@ func decodeDot11MgmtReassocReq(data []byte, p gopacket.PacketBuilder) error {
 
 func (m *Dot11MgmtReassocReq) LayerType() gopacket.LayerType { return LayerTypeDot11MgmtReassocReq }
 func (m *Dot11MgmtReassocReq) CanDecode() gopacket.LayerClass { return LayerTypeDot11MgmtReassocReq }
+func (m *Dot11MgmtReassocReq) NextLayerType() gopacket.LayerType { return LayerTypeDot11InformationElement }
 func (m *Dot11MgmtReassocReq) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) error {
     m.CapabilityInfo=binary.LittleEndian.Uint16(data[0:2])
     m.ListenInterval=binary.LittleEndian.Uint16(data[2:4])
@@ -906,6 +907,7 @@ func decodeDot11MgmtReassocResp(data []byte, p gopacket.PacketBuilder) error {
 
 func (m *Dot11MgmtReassocResp) LayerType() gopacket.LayerType { return LayerTypeDot11MgmtReassocResp }
 func (m *Dot11MgmtReassocResp) CanDecode() gopacket.LayerClass { return LayerTypeDot11MgmtReassocResp }
+func (m *Dot11MgmtReassocResp) NextLayerType() gopacket.LayerType { return LayerTypeDot11InformationElement }
 func (m *Dot11MgmtReassocResp) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) error {
     m.BaseLayer = layers.BaseLayer{Contents: data, Payload: nil}
     return nil
@@ -924,6 +926,7 @@ func decodeDot11MgmtProbeReq(data []byte, p gopacket.PacketBuilder) error {
 
 func (m *Dot11MgmtProbeReq) LayerType() gopacket.LayerType { return LayerTypeDot11MgmtProbeReq }
 func (m *Dot11MgmtProbeReq) CanDecode() gopacket.LayerClass { return LayerTypeDot11MgmtProbeReq }
+func (m *Dot11MgmtProbeReq) NextLayerType() gopacket.LayerType { return LayerTypeDot11InformationElement }
 func (m *Dot11MgmtProbeReq) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) error {
     m.BaseLayer = layers.BaseLayer{Contents: data, Payload: nil}
     return nil
@@ -942,6 +945,7 @@ func decodeDot11MgmtProbeResp(data []byte, p gopacket.PacketBuilder) error {
 
 func (m *Dot11MgmtProbeResp) LayerType() gopacket.LayerType { return LayerTypeDot11MgmtProbeResp }
 func (m *Dot11MgmtProbeResp) CanDecode() gopacket.LayerClass { return LayerTypeDot11MgmtProbeResp }
+func (m *Dot11MgmtProbeResp) NextLayerType() gopacket.LayerType { return LayerTypeDot11InformationElement }
 func (m *Dot11MgmtProbeResp) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) error {
     m.BaseLayer = layers.BaseLayer{Contents: data, Payload: nil}
     return nil
@@ -1066,6 +1070,7 @@ func decodeDot11MgmtAuthentication(data []byte, p gopacket.PacketBuilder) error 
 
 func (m *Dot11MgmtAuthentication) LayerType() gopacket.LayerType { return LayerTypeDot11MgmtAuthentication }
 func (m *Dot11MgmtAuthentication) CanDecode() gopacket.LayerClass { return LayerTypeDot11MgmtAuthentication }
+func (m *Dot11MgmtAuthentication) NextLayerType() gopacket.LayerType { return LayerTypeDot11InformationElement }
 func (m *Dot11MgmtAuthentication) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) error {
     m.BaseLayer = layers.BaseLayer{Contents: data, Payload: nil}
     return nil
