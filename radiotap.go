@@ -229,3 +229,12 @@ func (m *RadioTap) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) erro
 
 func (m *RadioTap) CanDecode() gopacket.LayerClass { return LayerTypeRadioTap }
 func (m *RadioTap) NextLayerType() gopacket.LayerType { return LayerTypeDot11 }
+
+func (m *RadioTap) String() string {
+    text := fmt.Sprintf("Radiotap ")
+    text += fmt.Sprintf("%v tsft ", m.Tsft)
+    text += fmt.Sprintf("%v Mb/s ", 0.5 * float32(m.Rate))
+    text += fmt.Sprintf("%v MHz ", m.ChannelTx)
+    text += fmt.Sprintf("%vdB ", m.DbmNoise)
+    return text
+}

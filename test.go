@@ -57,7 +57,7 @@ func scan(iface *net.Interface) error {
 	}
 	defer handle.Close()
 	*/
-	handle, err := pcap.OpenOffline("/tmp/test.pcap")
+	handle, err := pcap.OpenOffline("/tmp/test2.pcap")
 	if err != nil {
 		return err
 	}

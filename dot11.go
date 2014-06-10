@@ -645,7 +645,7 @@ type Dot11InformationElement struct {
         Id uint8 
         Length uint8
         Oui []byte
-        Info string
+        Info []byte
 }
 
 func (m *Dot11InformationElement) LayerType() gopacket.LayerType { return LayerTypeDot11InformationElement }
@@ -670,10 +670,32 @@ func (m *Dot11InformationElement) DecodeFromBytes(data []byte, df gopacket.Decod
         offset += 4
     }
 
-    m.Info = string(data[offset:offset+m.Length])
+    m.Info = data[offset:offset+m.Length]
     offset += m.Length 
     m.BaseLayer = layers.BaseLayer{Contents: data[:offset], Payload: data[offset:]}
     return nil
+}
+
+func (d *Dot11InformationElement) String() string {
+    ids:=map[uint8]string{0:"SSID", 1:"Rates", 2: "FHset", 3:"DSset", 4:"CFset", 5:"TIM", 6:"IBSSset", 16:"challenge",
+                                            42:"ERPinfo", 46:"QoS Capability", 47:"ERPinfo", 48:"RSNinfo", 50:"ESRates",221:"vendor",68:"reserved"}
+    if (d.Id==0) {
+        return fmt.Sprintf("802.11 Information Element (SSID: %v)", string(d.Info))
+    } else if (d.Id==1) {
+        rates := ""
+        for i:=0;i<len(d.Info);i++ {
+            if (d.Info[i] & 0x80 == 0) {
+            rates+=fmt.Sprintf("%.1f ", float32(d.Info[i]) * 0.5)
+            } else {
+            rates+=fmt.Sprintf("%.1f* ", float32(d.Info[i] & 0x7F) * 0.5)
+            }
+        }
+        return fmt.Sprintf("802.11 Information Element (Rates: %s Mbit)", rates)
+    } else if (d.Id==221) {
+        return fmt.Sprintf("802.11 Information Element (Vendor: ID: %v[%v], Length: %v, OUI: %X, Info: %X)", ids[d.Id], d.Id, d.Length, d.Oui, d.Info)
+    } else {
+        return fmt.Sprintf("802.11 Information Element (ID: %v[%v], Length: %v, Info: %X)", ids[d.Id], d.Id, d.Length, d.Info)
+    }
 }
 
 func decodeDot11InformationElement(data []byte, p gopacket.PacketBuilder) error {
@@ -864,7 +886,7 @@ func (m *Dot11MgmtAssocResp) DecodeFromBytes(data []byte, df gopacket.DecodeFeed
     m.CapabilityInfo=binary.LittleEndian.Uint16(data[0:2])
     m.Status=binary.LittleEndian.Uint16(data[2:4])
     m.AID=binary.LittleEndian.Uint16(data[4:6])
-    m.BaseLayer = layers.BaseLayer{Contents: data[:6], Payload: data[6:]}
+    m.BaseLayer = layers.BaseLayer{Contents: data, Payload: data[6:]}
     return nil
 }
 
@@ -889,7 +911,7 @@ func (m *Dot11MgmtReassocReq) DecodeFromBytes(data []byte, df gopacket.DecodeFee
     m.CapabilityInfo=binary.LittleEndian.Uint16(data[0:2])
     m.ListenInterval=binary.LittleEndian.Uint16(data[2:4])
     m.CurrentApAddress=net.HardwareAddr(data[4:10])
-    m.BaseLayer = layers.BaseLayer{Contents: data, Payload: nil}
+    m.BaseLayer = layers.BaseLayer{Contents: data, Payload: data[10:]}
     return nil
 }
 
@@ -909,7 +931,7 @@ func (m *Dot11MgmtReassocResp) LayerType() gopacket.LayerType { return LayerType
 func (m *Dot11MgmtReassocResp) CanDecode() gopacket.LayerClass { return LayerTypeDot11MgmtReassocResp }
 func (m *Dot11MgmtReassocResp) NextLayerType() gopacket.LayerType { return LayerTypeDot11InformationElement }
 func (m *Dot11MgmtReassocResp) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) error {
-    m.BaseLayer = layers.BaseLayer{Contents: data, Payload: nil}
+    m.BaseLayer = layers.BaseLayer{Contents: data, Payload: data[0:]}
     return nil
 }
 
@@ -994,7 +1016,7 @@ func (m *Dot11MgmtBeacon) DecodeFromBytes(data []byte, df gopacket.DecodeFeedbac
 }
 
 func (d *Dot11MgmtBeacon) String() string {
-    return fmt.Sprintf("Beacon timestamp=%v interval=%v flags=%v", d.Timestamp, d.Interval, d.Flags)
+    return fmt.Sprintf("Beacon timestamp=%.1f (seconds) interval=%v (ms) flags=%v", (float32(d.Timestamp) / 100000.0), d.Interval, d.Flags)
 }
 
 func (m *Dot11MgmtBeacon) NextLayerType() gopacket.LayerType { return LayerTypeDot11InformationElement }
