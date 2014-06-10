@@ -100,10 +100,10 @@ type Dot11 struct {
         Order bool
         DurationId uint16
         // DurationId []byte
-        DestinationAddress net.HardwareAddr
-        SourceAddress net.HardwareAddr
-        ReceiverAddress net.HardwareAddr
-        TransmitterAddress net.HardwareAddr
+        Address1 net.HardwareAddr
+        Address2 net.HardwareAddr
+        Address3 net.HardwareAddr
+        Address4 net.HardwareAddr
 }
 
 func decodeDot11(data []byte, p gopacket.PacketBuilder) error {
