@@ -95,6 +95,7 @@ type Dot11 struct {
         Retry bool
         PowerManagement bool
         MD bool
+        Valid bool
         Wep bool
         Order bool
         DurationId uint16
@@ -261,24 +262,24 @@ func (m *Dot11) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) error {
     m.Wep = (((uint8)(data[1]) & 0x40)  == 0x40)
     m.Order = (((uint8)(data[1]) & 0x80) == 0x80)
     m.DurationId=binary.LittleEndian.Uint16(data[2:4])
-    m.DestinationAddress=net.HardwareAddr(data[4:10])
+    m.Address1=net.HardwareAddr(data[4:10])
 
     offset := 10
 
     if (m.Type == CONTROL_FRAME) {
         switch(m.Subtype) { 
             case CTRL_RTS, CTRL_PS_POLL, CTRL_CFP_END, CTRL_CFP_ENDACK: {
-                m.SourceAddress=net.HardwareAddr(data[offset:offset+6])
+                m.Address2=net.HardwareAddr(data[offset:offset+6])
                 offset += 6
             }
         }
     } else {
-        m.SourceAddress=net.HardwareAddr(data[offset:offset+6])
+        m.Address2=net.HardwareAddr(data[offset:offset+6])
         offset += 6
     }
 
     if (m.Type == MGT_FRAME || m.Type == DATA_FRAME) {
-        m.ReceiverAddress=net.HardwareAddr(data[offset:offset+6])
+        m.Address3=net.HardwareAddr(data[offset:offset+6])
         offset += 6
     }
 
@@ -288,7 +289,7 @@ func (m *Dot11) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) error {
     }
 
     if (m.Type == DATA_FRAME && m.FromDS && m.ToDS) {
-        m.TransmitterAddress=net.HardwareAddr(data[offset:offset+6])
+        m.Address4=net.HardwareAddr(data[offset:offset+6])
         offset += 6
     }
 
@@ -311,9 +312,8 @@ func (m *Dot11) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) error {
         }
     }
 
-    // checksum := crc32.ChecksumIEEE(data[:offset])
-    _ = crc32.ChecksumIEEE(data[:offset])
-    //fmt.Println("Checksum %v %v", checksum, binary.LittleEndian.Uint32(data[offset:offset+4]))
+    checksum := crc32.ChecksumIEEE(data[:offset])
+    m.Valid = (checksum == binary.LittleEndian.Uint32(data[offset:offset+4]))
    
     // 32:36  (FCS) CRC
     /*
@@ -326,6 +326,29 @@ func (m *Dot11) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) error {
 
 func (m Dot11) SerializeTo(b gopacket.SerializeBuffer, opts gopacket.SerializeOptions) error {
 	return nil
+}
+
+func (m *Dot11) String() string {
+    text := fmt.Sprintf("802.11 Type: %v Subtype: %v Protocol: %v ", m.Type, m.Subtype, m.Proto)
+    if (!m.Valid) {
+    text += "bad-fcs "
+    }
+    if (m.Wep) {
+    text += "wep "
+    }
+    if (m.Retry) {
+    text += "Retry"
+    }
+    if (m.MD) {
+    text += "More Data"
+    }
+    if (m.PowerManagement) {
+    text += "Pwr Mgmt"
+    }
+    if (m.Order) {
+    text += "Strictly Ordered "
+    }
+    return text
 }
 
 
@@ -640,15 +663,15 @@ func (m *Dot11InformationElement) NextLayerType() gopacket.LayerType {
 func (m *Dot11InformationElement) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) error {
     m.Id = data[0]
     m.Length = data[1]
-    offset := uint8(1)
+    offset := uint8(2)
 
     if (m.Id==221) {
         m.Oui=data[offset:offset+4]
         offset += 4
     }
 
-    m.Info = string(data[offset:offset+m.Length + 1])
-    offset += m.Length + 1
+    m.Info = string(data[offset:offset+m.Length])
+    offset += m.Length 
     m.BaseLayer = layers.BaseLayer{Contents: data[:offset], Payload: data[offset:]}
     return nil
 }
@@ -803,7 +826,6 @@ type Dot11MgmtAssocReq struct {
 	Dot11MgmtFrame
         CapabilityInfo uint16 
         ListenInterval uint16 
-        CurrentApAddress net.HardwareAddr
 }
 
 func decodeDot11MgmtAssocReq(data []byte, p gopacket.PacketBuilder) error {
@@ -813,11 +835,11 @@ func decodeDot11MgmtAssocReq(data []byte, p gopacket.PacketBuilder) error {
 
 func (m *Dot11MgmtAssocReq) LayerType() gopacket.LayerType { return LayerTypeDot11MgmtAssocReq }
 func (m *Dot11MgmtAssocReq) CanDecode() gopacket.LayerClass { return LayerTypeDot11MgmtAssocReq }
+func (m *Dot11MgmtAssocReq) NextLayerType() gopacket.LayerType { return LayerTypeDot11InformationElement }
 func (m *Dot11MgmtAssocReq) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) error {
     m.CapabilityInfo=binary.LittleEndian.Uint16(data[0:2])
     m.ListenInterval=binary.LittleEndian.Uint16(data[2:4])
-    m.CurrentApAddress=net.HardwareAddr(data[4:10])
-    m.BaseLayer = layers.BaseLayer{Contents: data, Payload: nil}
+    m.BaseLayer = layers.BaseLayer{Contents: data[:4], Payload: data[4:]}
     return nil
 }
 
@@ -825,6 +847,9 @@ var LayerTypeDot11MgmtAssocResp = gopacket.RegisterLayerType(1059981, gopacket.L
 
 type Dot11MgmtAssocResp struct {
 	Dot11MgmtFrame
+        CapabilityInfo uint16 
+        Status uint16 
+        AID uint16 
 }
 
 func decodeDot11MgmtAssocResp(data []byte, p gopacket.PacketBuilder) error {
@@ -834,8 +859,12 @@ func decodeDot11MgmtAssocResp(data []byte, p gopacket.PacketBuilder) error {
 
 func (m *Dot11MgmtAssocResp) CanDecode() gopacket.LayerClass { return LayerTypeDot11MgmtAssocResp }
 func (m *Dot11MgmtAssocResp) LayerType() gopacket.LayerType { return LayerTypeDot11MgmtAssocResp }
+func (m *Dot11MgmtAssocResp) NextLayerType() gopacket.LayerType { return LayerTypeDot11InformationElement }
 func (m *Dot11MgmtAssocResp) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) error {
-    m.BaseLayer = layers.BaseLayer{Contents: data, Payload: nil}
+    m.CapabilityInfo=binary.LittleEndian.Uint16(data[0:2])
+    m.Status=binary.LittleEndian.Uint16(data[2:4])
+    m.AID=binary.LittleEndian.Uint16(data[4:6])
+    m.BaseLayer = layers.BaseLayer{Contents: data[:6], Payload: data[6:]}
     return nil
 }
 
@@ -984,10 +1013,15 @@ func (m *Dot11MgmtATIM) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback)
     return nil
 }
 
+func (d *Dot11MgmtATIM) String() string {
+    return fmt.Sprintf("802.11 ATIM")
+}
+
 var LayerTypeDot11MgmtDisassociation = gopacket.RegisterLayerType(1059997, gopacket.LayerTypeMetadata{"LayerTypeDot11MgmtDisassociation", gopacket.DecodeFunc(decodeDot11MgmtDisassociation)})
 
 type Dot11MgmtDisassociation struct {
 	Dot11MgmtFrame
+        Reason uint16 
 }
 
 func decodeDot11MgmtDisassociation(data []byte, p gopacket.PacketBuilder) error {
@@ -998,9 +1032,26 @@ func decodeDot11MgmtDisassociation(data []byte, p gopacket.PacketBuilder) error 
 func (m *Dot11MgmtDisassociation) LayerType() gopacket.LayerType { return LayerTypeDot11MgmtDisassociation }
 func (m *Dot11MgmtDisassociation) CanDecode() gopacket.LayerClass { return LayerTypeDot11MgmtDisassociation }
 func (m *Dot11MgmtDisassociation) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) error {
+    m.Reason=binary.LittleEndian.Uint16(data[0:2])
     m.BaseLayer = layers.BaseLayer{Contents: data, Payload: nil}
     return nil
 }
+
+func (d *Dot11MgmtDisassociation) String() string {
+    reasons:=map[uint16]string{
+        0:"reserved",
+        1:"unspec", 
+        2:"auth-expired",
+        3:"deauth-ST-leaving",
+        4:"inactivity", 
+        5:"AP-full", 
+        6:"class2-from-nonauth",
+        7:"class3-from-nonass", 
+        8:"disas-ST-leaving",
+        9:"ST-not-auth"}
+    return fmt.Sprintf("802.11 Disassociation (Reason: %v[%v])", reasons[d.Reason], d.Reason)
+}
+
 
 var LayerTypeDot11MgmtAuthentication = gopacket.RegisterLayerType(1054327, gopacket.LayerTypeMetadata{"LayerTypeDot11MgmtAuthentication", gopacket.DecodeFunc(decodeDot11MgmtAuthentication)})
 
@@ -1018,6 +1069,10 @@ func (m *Dot11MgmtAuthentication) CanDecode() gopacket.LayerClass { return Layer
 func (m *Dot11MgmtAuthentication) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) error {
     m.BaseLayer = layers.BaseLayer{Contents: data, Payload: nil}
     return nil
+}
+
+func (d *Dot11MgmtAuthentication) String() string {
+    return fmt.Sprintf("802.11 Authentication")
 }
 
 var LayerTypeDot11MgmtDeauthentication = gopacket.RegisterLayerType(1054328, gopacket.LayerTypeMetadata{"LayerTypeDot11MgmtDeauthentication", gopacket.DecodeFunc(decodeDot11MgmtDeauthentication)})
