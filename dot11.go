@@ -551,10 +551,42 @@ func (m *Dot11DataCfAckPollNoData) DecodeFromBytes(data []byte, df gopacket.Deco
     return nil
 }
 
+type Dot11DataQos struct {
+    Dot11ControlFrame
+    TID uint8 /* Traffic Identifier */
+    EOSP bool /* End of service period */
+    AckPolicy uint8
+    TXOP uint8
+
+
+    /*
+    fields_desc = [ BitField("TID",None,4),
+                    BitField("EOSP",None,1),
+                    BitField("Ack Policy",None,2),
+                    BitField("Reserved",None,1),
+                    ByteField("TXOP",None) ]
+    */
+}
+
+func (m *Dot11DataQos) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) error {
+    m.TID = ((uint8)(data[0]) & 0x0F) 
+    m.EOSP = ((uint8)(data[0]) & 0x10) == 0x10
+    m.AckPolicy = ((uint8)(data[0]) & 0x60) >> 5
+    m.TXOP = (uint8)(data[1])
+    m.BaseLayer = layers.BaseLayer{Contents: data[0:2], Payload: data[2:]}
+    return nil
+}
+
+func (d *Dot11DataQos) String() string {
+    ack_policies:=map[uint8]string{0:"Normal Ack", 1:"No Ack", 2: "No Explicit Acknowledgement", 3:"Block Acknowledgement"}
+    return fmt.Sprintf("Ack policy: %v[%v]", ack_policies[d.AckPolicy], d.AckPolicy)
+}
+
+
 var LayerTypeDot11DataQosData = gopacket.RegisterLayerType(105008, gopacket.LayerTypeMetadata{"LayerTypeDot11DataQosData", gopacket.DecodeFunc(decodeDot11DataQosData)})
 
 type Dot11DataQosData struct {
-	Dot11ControlFrame
+	Dot11DataQos
 }
 
 func decodeDot11DataQosData(data []byte, p gopacket.PacketBuilder) error {
@@ -564,14 +596,19 @@ func decodeDot11DataQosData(data []byte, p gopacket.PacketBuilder) error {
 
 func (m *Dot11DataQosData) LayerType() gopacket.LayerType { return LayerTypeDot11DataQosData }
 func (m *Dot11DataQosData) CanDecode() gopacket.LayerClass { return LayerTypeDot11DataQosData }
-func (m *Dot11DataQosData) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) error {
-    return nil
+
+func (m *Dot11DataQosData) NextLayerType() gopacket.LayerType { 
+    return LayerTypeDot11DataFrame
+}
+
+func (d *Dot11DataQosData) String() string {
+    return fmt.Sprintf("Dot11DataQosData %v", d.Dot11DataQos.String())
 }
 
 var LayerTypeDot11DataQosDataCfAck = gopacket.RegisterLayerType(105009, gopacket.LayerTypeMetadata{"LayerTypeDot11DataQosDataCfAck", gopacket.DecodeFunc(decodeDot11DataQosDataCfAck)})
 
 type Dot11DataQosDataCfAck struct {
-	Dot11ControlFrame
+	Dot11DataQos
 }
 
 func decodeDot11DataQosDataCfAck(data []byte, p gopacket.PacketBuilder) error {
@@ -581,14 +618,19 @@ func decodeDot11DataQosDataCfAck(data []byte, p gopacket.PacketBuilder) error {
 
 func (m *Dot11DataQosDataCfAck) LayerType() gopacket.LayerType { return LayerTypeDot11DataQosDataCfAck }
 func (m *Dot11DataQosDataCfAck) CanDecode() gopacket.LayerClass { return LayerTypeDot11DataQosDataCfAck }
-func (m *Dot11DataQosDataCfAck) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) error {
-    return nil
+
+func (m *Dot11DataQosDataCfAck) NextLayerType() gopacket.LayerType { 
+    return LayerTypeDot11DataCfAck
+}
+
+func (d *Dot11DataQosDataCfAck) String() string {
+    return fmt.Sprintf("Dot11DataQosDataCfAck %v", d.Dot11DataQos.String())
 }
 
 var LayerTypeDot11DataQosDataCfPoll = gopacket.RegisterLayerType(105010, gopacket.LayerTypeMetadata{"LayerTypeDot11DataQosDataCfPoll", gopacket.DecodeFunc(decodeDot11DataQosDataCfPoll)})
 
 type Dot11DataQosDataCfPoll struct {
-	Dot11ControlFrame
+	Dot11DataQos
 }
 
 func decodeDot11DataQosDataCfPoll(data []byte, p gopacket.PacketBuilder) error {
@@ -598,14 +640,15 @@ func decodeDot11DataQosDataCfPoll(data []byte, p gopacket.PacketBuilder) error {
 
 func (m *Dot11DataQosDataCfPoll) LayerType() gopacket.LayerType { return LayerTypeDot11DataQosDataCfPoll }
 func (m *Dot11DataQosDataCfPoll) CanDecode() gopacket.LayerClass { return LayerTypeDot11DataQosDataCfPoll }
-func (m *Dot11DataQosDataCfPoll) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) error {
-    return nil
+func (m *Dot11DataQosDataCfPoll) NextLayerType() gopacket.LayerType { return LayerTypeDot11DataCfPoll } 
+func (d *Dot11DataQosDataCfPoll) String() string {
+    return fmt.Sprintf("Dot11DataQosDataCfAck %v", d.Dot11DataQos.String())
 }
 
 var LayerTypeDot11DataQosDataCfAckPoll = gopacket.RegisterLayerType(105011, gopacket.LayerTypeMetadata{"LayerTypeDot11DataQosDataCfAckPoll", gopacket.DecodeFunc(decodeDot11DataQosDataCfAckPoll)})
 
 type Dot11DataQosDataCfAckPoll struct {
-	Dot11ControlFrame
+	Dot11DataQos
 }
 
 func decodeDot11DataQosDataCfAckPoll(data []byte, p gopacket.PacketBuilder) error {
@@ -615,14 +658,15 @@ func decodeDot11DataQosDataCfAckPoll(data []byte, p gopacket.PacketBuilder) erro
 
 func (m *Dot11DataQosDataCfAckPoll) LayerType() gopacket.LayerType { return LayerTypeDot11DataQosDataCfAckPoll }
 func (m *Dot11DataQosDataCfAckPoll) CanDecode() gopacket.LayerClass { return LayerTypeDot11DataQosDataCfAckPoll }
-func (m *Dot11DataQosDataCfAckPoll) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) error {
-    return nil
+func (m *Dot11DataQosDataCfAckPoll) NextLayerType() gopacket.LayerType { return LayerTypeDot11DataCfAckPoll }
+func (d *Dot11DataQosDataCfAckPoll) String() string {
+    return fmt.Sprintf("Dot11DataQosDataCfAckPoll %v", d.Dot11DataQos.String())
 }
 
 var LayerTypeDot11DataQosNull = gopacket.RegisterLayerType(105012, gopacket.LayerTypeMetadata{"LayerTypeDot11DataQosNull", gopacket.DecodeFunc(decodeDot11DataQosNull)})
 
 type Dot11DataQosNull struct {
-	Dot11ControlFrame
+	Dot11DataQos
 }
 
 func decodeDot11DataQosNull(data []byte, p gopacket.PacketBuilder) error {
@@ -632,14 +676,15 @@ func decodeDot11DataQosNull(data []byte, p gopacket.PacketBuilder) error {
 
 func (m *Dot11DataQosNull) LayerType() gopacket.LayerType { return LayerTypeDot11DataQosNull }
 func (m *Dot11DataQosNull) CanDecode() gopacket.LayerClass { return LayerTypeDot11DataQosNull }
-func (m *Dot11DataQosNull) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) error {
-    return nil
+func (m *Dot11DataQosNull) NextLayerType() gopacket.LayerType { return LayerTypeDot11DataNull } 
+func (d *Dot11DataQosNull) String() string {
+    return fmt.Sprintf("Dot11DataQosNull %v", d.Dot11DataQos.String())
 }
 
 var LayerTypeDot11DataQosCfPollNoData = gopacket.RegisterLayerType(105013, gopacket.LayerTypeMetadata{"LayerTypeDot11DataQosCfPollNoData", gopacket.DecodeFunc(decodeDot11DataQosCfPollNoData)})
 
 type Dot11DataQosCfPollNoData struct {
-	Dot11ControlFrame
+	Dot11DataQos
 }
 
 func decodeDot11DataQosCfPollNoData(data []byte, p gopacket.PacketBuilder) error {
@@ -649,14 +694,15 @@ func decodeDot11DataQosCfPollNoData(data []byte, p gopacket.PacketBuilder) error
 
 func (m *Dot11DataQosCfPollNoData) LayerType() gopacket.LayerType { return LayerTypeDot11DataQosCfPollNoData }
 func (m *Dot11DataQosCfPollNoData) CanDecode() gopacket.LayerClass { return LayerTypeDot11DataQosCfPollNoData }
-func (m *Dot11DataQosCfPollNoData) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) error {
-    return nil
+func (m *Dot11DataQosCfPollNoData) NextLayerType() gopacket.LayerType { return LayerTypeDot11DataCfPollNoData } 
+func (d *Dot11DataQosCfPollNoData) String() string {
+    return fmt.Sprintf("Dot11DataQosCfPollNoData %v", d.Dot11DataQos.String())
 }
 
 var LayerTypeDot11DataQosCfAckPollNoData = gopacket.RegisterLayerType(105014, gopacket.LayerTypeMetadata{"LayerTypeDot11DataQosCfAckPollNoData", gopacket.DecodeFunc(decodeDot11DataQosCfAckPollNoData)})
 
 type Dot11DataQosCfAckPollNoData struct {
-	Dot11ControlFrame
+	Dot11DataQos
 }
 
 func decodeDot11DataQosCfAckPollNoData(data []byte, p gopacket.PacketBuilder) error {
@@ -666,12 +712,10 @@ func decodeDot11DataQosCfAckPollNoData(data []byte, p gopacket.PacketBuilder) er
 
 func (m *Dot11DataQosCfAckPollNoData) LayerType() gopacket.LayerType { return LayerTypeDot11DataQosCfAckPollNoData }
 func (m *Dot11DataQosCfAckPollNoData) CanDecode() gopacket.LayerClass { return LayerTypeDot11DataQosCfAckPollNoData }
-func (m *Dot11DataQosCfAckPollNoData) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) error {
-    return nil
+func (m *Dot11DataQosCfAckPollNoData) NextLayerType() gopacket.LayerType { return LayerTypeDot11DataCfAckPollNoData } 
+func (d *Dot11DataQosCfAckPollNoData) String() string {
+    return fmt.Sprintf("Dot11DataQosCfAckPollNoData %v", d.Dot11DataQos.String())
 }
-
-
-
 
 var LayerTypeDot11InformationElement = gopacket.RegisterLayerType(105015, gopacket.LayerTypeMetadata{"LayerTypeDot11InformationElement", gopacket.DecodeFunc(decodeDot11InformationElement)})
 
