@@ -6,7 +6,13 @@ Extra gopacket layers for Radiotap and 802.11 (work in progress)
 * Radiotap
 * 802.11
 
-= References =
+## Subprojects
+* [go-ouitools] (https://github.com/dutchcoders/go-ouitools)
+ 
+## Contributors
+* Remco (DutchCoders, Github: @nl5887, Twitter: @remco_verhoef)
+
+## References 
 * http://www.willhackforsushi.com/papers/80211_Pocket_Reference_Guide.pdf
 * http://my.safaribooksonline.com/book/networking/wireless/0596001835/802dot11-framing-in-detail/wireless802dot11-chp-4-sect-3
 * https://code.wireshark.org/review/gitweb?p=wireshark.git;a=blob_plain;f=manuf

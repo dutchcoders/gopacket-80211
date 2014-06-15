@@ -1,3 +1,32 @@
+/**!
+ * The MIT License
+ *
+ * Copyright (c) 2014 Remco Verhoef (github.com/dutchcoders/gopacket-80211)
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ *
+ * gopacket-80211
+ * http://github.com/dutchcoders/gopacket-80211
+ *
+ * @authors http://github.com/dutchcoders/gopacket-80211/graphs/contributors
+*/
+
 package main
 
 import (
@@ -15,6 +44,12 @@ type layerDecodingLayer interface {
 	DecodeFromBytes([]byte, gopacket.DecodeFeedback) error
 	NextLayerType() gopacket.LayerType
 }
+
+const (
+    DOT11_REGISTER_NUM int= 0x11000
+    DOT11_MGT_REGISTER_NUM int= 0x11100
+    DOT11_MGT_ASSOC_REQ_REGISTER_NUM int= DOT11_MGT_REGISTER_NUM + int(MGT_ASSOC_REQ)
+)
 
 const (
     MGT_FRAME            uint8=0x00  /* Frame type is management */
@@ -315,12 +350,6 @@ func (m *Dot11) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) error {
     checksum := crc32.ChecksumIEEE(data[:offset])
     m.Valid = (checksum == binary.LittleEndian.Uint32(data[offset:offset+4]))
    
-    // 32:36  (FCS) CRC
-    /*
-    checksum := crc32.ChecksumIEEE(data[0:len(data)-4])
-    fmt.Println("%v %v", checksum, binary.LittleEndian.Uint32(data[len(data)-4:len(data)]))
-    */
-    // fmt.Printf("Destination %X Source %X", data[4:10], data[10:16])
     return (nil)
 }
 
@@ -330,24 +359,30 @@ func (m Dot11) SerializeTo(b gopacket.SerializeBuffer, opts gopacket.SerializeOp
 
 func (m *Dot11) String() string {
     text := fmt.Sprintf("802.11 Type: %v Subtype: %v Protocol: %v ", m.Type, m.Subtype, m.Proto)
+
     if (!m.Valid) {
-    text += "bad-fcs "
+        text += "bad-fcs "
     }
     if (m.Wep) {
-    text += "wep "
+        text += "wep "
     }
     if (m.Retry) {
-    text += "Retry"
+        text += "Retry"
     }
     if (m.MD) {
-    text += "More Data"
+        text += "More Data"
     }
     if (m.PowerManagement) {
-    text += "Pwr Mgmt"
+        text += "Pwr Mgmt"
     }
     if (m.Order) {
-    text += "Strictly Ordered "
+        text += "Strictly Ordered "
     }
+
+    text += fmt.Sprintf("Address1: %s ", m.Address1)
+    text += fmt.Sprintf("Address2: %s ", m.Address2)
+    text += fmt.Sprintf("Address3: %s ", m.Address3)
+    text += fmt.Sprintf("Address4: %s ", m.Address4)
     return text
 }
 
@@ -667,11 +702,13 @@ func (m *Dot11InformationElement) DecodeFromBytes(data []byte, df gopacket.Decod
 
     if (m.Id==221) {
         m.Oui=data[offset:offset+4]
-        offset += 4
+        m.Info = data[offset+4:offset+m.Length]
+    } else {
+        m.Info = data[offset:offset+m.Length]
     }
 
-    m.Info = data[offset:offset+m.Length]
     offset += m.Length 
+
     m.BaseLayer = layers.BaseLayer{Contents: data[:offset], Payload: data[offset:]}
     return nil
 }
@@ -842,7 +879,7 @@ func (m *Dot11ControlContentionFreePeriodEndAck) DecodeFromBytes(data []byte, df
 
 
 
-var LayerTypeDot11MgmtAssocReq = gopacket.RegisterLayerType(1059989, gopacket.LayerTypeMetadata{"LayerTypeDot11MgmtAssocReq", gopacket.DecodeFunc(decodeDot11MgmtAssocReq)})
+var LayerTypeDot11MgmtAssocReq = gopacket.RegisterLayerType(DOT11_MGT_ASSOC_REQ_REGISTER_NUM, gopacket.LayerTypeMetadata{"LayerTypeDot11MgmtAssocReq", gopacket.DecodeFunc(decodeDot11MgmtAssocReq)})
 
 type Dot11MgmtAssocReq struct {
 	Dot11MgmtFrame
@@ -1083,6 +1120,9 @@ var LayerTypeDot11MgmtAuthentication = gopacket.RegisterLayerType(1054327, gopac
 
 type Dot11MgmtAuthentication struct {
 	Dot11MgmtFrame
+        Algorithm uint16
+        Sequence uint16
+        Statuscode uint16
 }
 
 func decodeDot11MgmtAuthentication(data []byte, p gopacket.PacketBuilder) error {
@@ -1094,18 +1134,39 @@ func (m *Dot11MgmtAuthentication) LayerType() gopacket.LayerType { return LayerT
 func (m *Dot11MgmtAuthentication) CanDecode() gopacket.LayerClass { return LayerTypeDot11MgmtAuthentication }
 func (m *Dot11MgmtAuthentication) NextLayerType() gopacket.LayerType { return LayerTypeDot11InformationElement }
 func (m *Dot11MgmtAuthentication) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) error {
+    m.Algorithm=binary.LittleEndian.Uint16(data[0:2])
+    m.Sequence=binary.LittleEndian.Uint16(data[2:4])
+    m.Statuscode=binary.LittleEndian.Uint16(data[4:6])
     m.BaseLayer = layers.BaseLayer{Contents: data, Payload: nil}
     return nil
 }
 
 func (d *Dot11MgmtAuthentication) String() string {
-    return fmt.Sprintf("802.11 Authentication")
+    algorithms:=map[uint16]string{
+        0:"open",
+        1:"shared-key"}
+
+    status_code :=map[uint16]string{
+      0:"success", 
+      1:"failure", 
+      10:"cannot-support-all-cap",
+      11:"inexist-asso", 
+      12:"asso-denied", 
+      13:"algo-unsupported",
+      14:"bad-seq-num", 
+      15:"challenge-failure",
+      16:"timeout", 
+      17:"AP-full",
+      18:"rate-unsupported" }
+
+    return fmt.Sprintf("802.11 Authentication (Algorithm: %v[%v], Sequence: %v, Statuscode: %v[%v])", algorithms[d.Algorithm], d.Algorithm, d.Statuscode, status_code[d.Statuscode], d.Statuscode)
 }
 
 var LayerTypeDot11MgmtDeauthentication = gopacket.RegisterLayerType(1054328, gopacket.LayerTypeMetadata{"LayerTypeDot11MgmtDeauthentication", gopacket.DecodeFunc(decodeDot11MgmtDeauthentication)})
 
 type Dot11MgmtDeauthentication struct {
 	Dot11MgmtFrame
+        Reason uint16
 }
 
 func decodeDot11MgmtDeauthentication(data []byte, p gopacket.PacketBuilder) error {
@@ -1116,8 +1177,24 @@ func decodeDot11MgmtDeauthentication(data []byte, p gopacket.PacketBuilder) erro
 func (m *Dot11MgmtDeauthentication) LayerType() gopacket.LayerType { return LayerTypeDot11MgmtDeauthentication }
 func (m *Dot11MgmtDeauthentication) CanDecode() gopacket.LayerClass { return LayerTypeDot11MgmtDeauthentication }
 func (m *Dot11MgmtDeauthentication) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) error {
+    m.Reason=binary.LittleEndian.Uint16(data[0:2])
     m.BaseLayer = layers.BaseLayer{Contents: data, Payload: nil}
     return nil
+}
+
+func (d *Dot11MgmtDeauthentication) String() string {
+    reasons:=map[uint16]string{
+        0:"reserved",
+        1:"unspec", 
+        2:"auth-expired",
+        3:"deauth-ST-leaving",
+        4:"inactivity", 
+        5:"AP-full", 
+        6:"class2-from-nonauth",
+        7:"class3-from-nonass", 
+        8:"disas-ST-leaving",
+        9:"ST-not-auth"}
+    return fmt.Sprintf("802.11 Deauthentication (Reason: %v[%v])", reasons[d.Reason], d.Reason)
 }
 
 var LayerTypeDot11MgmtAction = gopacket.RegisterLayerType(1054329, gopacket.LayerTypeMetadata{"LayerTypeDot11MgmtAction", gopacket.DecodeFunc(decodeDot11MgmtAction)})
