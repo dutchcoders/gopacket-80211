@@ -25,18 +25,19 @@
  * http://github.com/dutchcoders/gopacket-80211
  *
  * @authors http://github.com/dutchcoders/gopacket-80211/graphs/contributors
-*/
+ */
 package main
 
 import (
 	_ "bytes"
 	_ "encoding/binary"
 	"fmt"
+	_ "hash/crc32"
 	"log"
 	"net"
 	"sync"
 	"time"
-        _ "hash/crc32"
+
 	"code.google.com/p/gopacket"
 	_ "code.google.com/p/gopacket/layers"
 	"code.google.com/p/gopacket/pcap"
@@ -62,28 +63,28 @@ func scan(iface *net.Interface) error {
 		}
 	}
 	// Sanity-check that the interface has a good address.
-	if (iface.Name != "en0") {
+	if iface.Name != "en0" {
 		return nil
 	}
 
 	/*
-	if addr == nil {
-		return fmt.Errorf("no good IP network found")
-	} else if addr.IP[0] == 127 {
-		return fmt.Errorf("skipping localhost")
-	} else if addr.Mask[0] != 0xff || addr.Mask[1] != 0xff {
-		return fmt.Errorf("mask means network is too large")
-	}
+		if addr == nil {
+			return fmt.Errorf("no good IP network found")
+		} else if addr.IP[0] == 127 {
+			return fmt.Errorf("skipping localhost")
+		} else if addr.Mask[0] != 0xff || addr.Mask[1] != 0xff {
+			return fmt.Errorf("mask means network is too large")
+		}
 	*/
 	log.Printf("using address %v for interface %v", addr, iface.Name)
 
 	// Open up a pcap handle for packet reads/writes.
 	/*
-	handle, err := pcap.OpenLive(iface.Name, 65536, true, pcap.BlockForever)
-	if err != nil {
-		return err
-	}
-	defer handle.Close()
+		handle, err := pcap.OpenLive(iface.Name, 65536, true, pcap.BlockForever)
+		if err != nil {
+			return err
+		}
+		defer handle.Close()
 	*/
 	handle, err := pcap.OpenOffline("/tmp/test3.pcap")
 	if err != nil {
