@@ -1,7 +1,10 @@
 gopacket-80211
 ==============
 
-Extra gopacket layers for Radiotap and 802.11 (work in progress)
+Extra gopacket layers for Radiotap and 802.11. The code has been cleaned up and integrated within Gopacket. 
+
+https://code.google.com/p/gopacket/wiki/ChangeLog#v1.1.4_20140625_Radiotap_and_802.11_support
+
 
 * Radiotap
 * 802.11
